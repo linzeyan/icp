@@ -10,14 +10,17 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 
+	"github.com/spf13/viper"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
-const (
-	account string = ""
-	key     string = ""
+var (
+	domain     string
+	configFile string
 )
 
 type West struct {
@@ -33,9 +36,13 @@ func md5encode(v string) string {
 	return hex.EncodeToString(m.Sum(nil))
 }
 
-func requestURI(domain string) (uri string) {
+func requestURI() (uri string) {
+	account := viper.GetString("account")
+	key := viper.GetString("key")
+	fmt.Println(account)
+	fmt.Println(key)
 	// MD5 Hash
-	const hash_data string = account + key + "domainname"
+	var hash_data string = account + key + "domainname"
 	sig := md5encode(hash_data)
 	rawCmd := fmt.Sprintf("domainname\r\ncheck\r\nentityname:icp\r\ndomains:%s\r\n.\r\n", domain)
 	// URL Encoding
@@ -43,14 +50,15 @@ func requestURI(domain string) (uri string) {
 	return fmt.Sprintf(`http://api.west263.com/api/?userid=%s&strCmd=%s&versig=%s`, account, strCmd, sig)
 }
 
-func httpPOST(domain string) (content []byte) {
+func httpPOST() (content []byte, err error) {
 	var client = &http.Client{}
-	uri := requestURI(domain)
+	uri := requestURI()
 	data := strings.NewReader(``)
 	req, err := http.NewRequest("POST", uri, data)
 	if err != nil {
 		fmt.Println("Resquest error.")
 		fmt.Println(err)
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
@@ -58,6 +66,7 @@ func httpPOST(domain string) (content []byte) {
 	if err != nil {
 		fmt.Println("Response error.")
 		fmt.Println(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 	// Convert GBK to UTF-8
@@ -66,21 +75,80 @@ func httpPOST(domain string) (content []byte) {
 	if err != nil {
 		fmt.Println("Content error.")
 		fmt.Println(err)
+		return nil, err
 	}
 	return
 }
 
-func main() {
-	if len(os.Args) != 2 {
-		os.Exit(1)
+func check() string {
+	body, err := httpPOST()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(2)
 	}
-	var domain string = os.Args[1]
-	body := httpPOST(domain)
 	// Find String
 	re, _ := regexp.Compile("{.*}")
 	match := fmt.Sprintln(re.FindString(string(body)))
 	// Parse Json
 	var icp West
 	json.Unmarshal([]byte(match), &icp)
-	fmt.Println(icp.ICPStatus)
+	return icp.ICPStatus
+}
+
+func readConf() {
+	viper.SetConfigName(configFile)
+	viper.SetConfigType("env")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME")
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println(err)
+		os.Exit(2)
+	}
+}
+
+func cliAction() cli.ActionFunc {
+	return func(c *cli.Context) error {
+		readConf()
+		if c.NumFlags() == 4 {
+			fmt.Println(domain+":", check())
+			return nil
+		} else {
+			cli.ShowAppHelpAndExit(c, 1)
+			return nil
+		}
+	}
+}
+
+func main() {
+	app := &cli.App{
+		Name:            "icp",
+		Usage:           "Check ICP status of domain",
+		UsageText:       "icp [Global Options] argument",
+		HelpName:        "help",
+		HideHelp:        false,
+		HideHelpCommand: false,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "config",
+				Aliases:     []string{"c"},
+				Usage:       "Load configuration from `FILE`",
+				Value:       "env",
+				Destination: &configFile,
+			},
+			&cli.StringFlag{
+				Name:        "domain",
+				Aliases:     []string{"d"},
+				Usage:       "Domain name",
+				Destination: &domain,
+			},
+		},
+		Action: cliAction(),
+	}
+	sort.Sort(cli.FlagsByName(app.Flags))
+	sort.Sort(cli.CommandsByName(app.Commands))
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(3)
+	}
 }
