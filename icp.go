@@ -84,7 +84,7 @@ func check() string {
 	body, err := httpPOST()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(2)
+		os.Exit(3)
 	}
 	// Find String
 	re, _ := regexp.Compile("{.*}")
@@ -108,8 +108,8 @@ func readConf() {
 
 func cliAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		readConf()
-		if c.NumFlags() == 4 {
+		if c.NumFlags() == 2 || c.NumFlags() == 4 {
+			readConf()
 			fmt.Println(domain+":", check())
 			return nil
 		} else {
@@ -149,6 +149,6 @@ func main() {
 	err := app.Run(os.Args)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(3)
+		os.Exit(1)
 	}
 }
