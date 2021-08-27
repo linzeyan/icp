@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"crypto/md5"
@@ -10,17 +10,14 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/spf13/viper"
-	"github.com/urfave/cli/v2"
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 var (
-	domain     string
-	configFile string
+	configFile, domain string
 )
 
 type West struct {
@@ -41,11 +38,11 @@ func requestURI() (uri string) {
 	key := viper.GetString("key")
 	fmt.Println(account)
 	fmt.Println(key)
-	// MD5 Hash
+	/* MD5 Hash */
 	var hash_data string = account + key + "domainname"
 	sig := md5encode(hash_data)
 	rawCmd := fmt.Sprintf("domainname\r\ncheck\r\nentityname:icp\r\ndomains:%s\r\n.\r\n", domain)
-	// URL Encoding
+	/* URL Encoding */
 	strCmd := url.QueryEscape(rawCmd)
 	return fmt.Sprintf(`http://api.west263.com/api/?userid=%s&strCmd=%s&versig=%s`, account, strCmd, sig)
 }
@@ -69,7 +66,7 @@ func httpPOST() (content []byte, err error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	// Convert GBK to UTF-8
+	/* Convert GBK to UTF-8 */
 	reader := simplifiedchinese.GB18030.NewDecoder().Reader(resp.Body)
 	content, err = ioutil.ReadAll(reader)
 	if err != nil {
@@ -86,69 +83,26 @@ func check() string {
 		fmt.Println(err)
 		os.Exit(3)
 	}
-	// Find String
+	/* Find String */
 	re, _ := regexp.Compile("{.*}")
 	match := fmt.Sprintln(re.FindString(string(body)))
-	// Parse Json
+	/* Parse Json */
 	var icp West
 	json.Unmarshal([]byte(match), &icp)
 	return icp.ICPStatus
 }
 
 func readConf() {
-	viper.SetConfigName(configFile)
-	viper.SetConfigType("env")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("$HOME")
+	if configFile != "" {
+		viper.SetConfigType("env")
+		viper.SetConfigFile(configFile)
+	} else {
+		viper.SetConfigType("env")
+		viper.AddConfigPath("$HOME")
+		viper.SetConfigName(".env")
+	}
+	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Println(err)
-		os.Exit(2)
-	}
-}
-
-func cliAction() cli.ActionFunc {
-	return func(c *cli.Context) error {
-		if c.NumFlags() == 2 || c.NumFlags() == 4 {
-			readConf()
-			fmt.Println(domain+":", check())
-			return nil
-		} else {
-			cli.ShowAppHelpAndExit(c, 1)
-			return nil
-		}
-	}
-}
-
-func main() {
-	app := &cli.App{
-		Name:            "icp",
-		Usage:           "Check ICP status of domain",
-		UsageText:       "icp [Global Options] argument",
-		HelpName:        "help",
-		HideHelp:        false,
-		HideHelpCommand: false,
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "config",
-				Aliases:     []string{"c"},
-				Usage:       "Load configuration from `FILE`",
-				Value:       "env",
-				Destination: &configFile,
-			},
-			&cli.StringFlag{
-				Name:        "domain",
-				Aliases:     []string{"d"},
-				Usage:       "Domain name",
-				Destination: &domain,
-			},
-		},
-		Action: cliAction(),
-	}
-	sort.Sort(cli.FlagsByName(app.Flags))
-	sort.Sort(cli.CommandsByName(app.Commands))
-	err := app.Run(os.Args)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
 	}
 }
