@@ -1,4 +1,4 @@
-package cmd
+package icp
 
 import (
 	"crypto/md5"
@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	configFile, domain string
+	ConfigFile, Domain string
 )
 
 type West struct {
@@ -36,12 +36,10 @@ func md5encode(v string) string {
 func requestURI() (uri string) {
 	account := viper.GetString("account")
 	key := viper.GetString("key")
-	fmt.Println(account)
-	fmt.Println(key)
 	/* MD5 Hash */
 	var hash_data string = account + key + "domainname"
 	sig := md5encode(hash_data)
-	rawCmd := fmt.Sprintf("domainname\r\ncheck\r\nentityname:icp\r\ndomains:%s\r\n.\r\n", domain)
+	rawCmd := fmt.Sprintf("domainname\r\ncheck\r\nentityname:icp\r\ndomains:%s\r\n.\r\n", Domain)
 	/* URL Encoding */
 	strCmd := url.QueryEscape(rawCmd)
 	return fmt.Sprintf(`http://api.west263.com/api/?userid=%s&strCmd=%s&versig=%s`, account, strCmd, sig)
@@ -77,7 +75,7 @@ func httpPOST() (content []byte, err error) {
 	return
 }
 
-func check() string {
+func Check() string {
 	body, err := httpPOST()
 	if err != nil {
 		fmt.Println(err)
@@ -92,10 +90,10 @@ func check() string {
 	return icp.ICPStatus
 }
 
-func readConf() {
-	if configFile != "" {
+func ReadConf() {
+	if ConfigFile != "" {
 		viper.SetConfigType("env")
-		viper.SetConfigFile(configFile)
+		viper.SetConfigFile(ConfigFile)
 	} else {
 		viper.SetConfigType("env")
 		viper.AddConfigPath("$HOME")

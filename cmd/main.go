@@ -1,9 +1,10 @@
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
 
+	"github.com/linzeyan/icp"
 	"github.com/spf13/cobra"
 )
 
@@ -22,20 +23,20 @@ func icpFlags() *cobra.Command {
 					cmd.Help()
 					os.Exit(0)
 				}
-				fmt.Println(domain+":", check())
+				fmt.Println(icp.Domain+":", icp.Check())
 			},
 		}
 	)
-	cobra.OnInitialize(readConf)
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Config File (default: $HOME/.env)")
-	rootCmd.PersistentFlags().StringVarP(&domain, "domain", "d", "", "Domain Name (required)")
+	cobra.OnInitialize(icp.ReadConf)
+	rootCmd.PersistentFlags().StringVarP(&icp.ConfigFile, "config", "c", "", "Config File (default: $HOME/.env)")
+	rootCmd.PersistentFlags().StringVarP(&icp.Domain, "domain", "d", "", "Domain Name (required)")
 	rootCmd.MarkPersistentFlagRequired("domain")
 	rootCmd.PersistentFlags().SortFlags = true
 	// rootCmd.AddCommand(initCmd)
 	return rootCmd
 }
 
-func Execute() {
+func main() {
 	if err := command.Execute(); err != nil {
 		os.Exit(1)
 	}
