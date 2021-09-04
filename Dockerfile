@@ -8,7 +8,7 @@ ARG projectDir
 WORKDIR ${projectDir}
 COPY . .
 RUN go mod tidy &&\
-  go build -o icp main.go &&\
+  go build -o icp cmd/main.go &&\
   upx -9 -o ${dist} icp
 
 
