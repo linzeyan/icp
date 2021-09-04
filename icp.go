@@ -102,5 +102,6 @@ func ReadConf() {
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Println(err)
+		os.Exit(2)
 	}
 }
