@@ -34,8 +34,8 @@ func md5encode(v string) string {
 }
 
 func requestURI() (uri string) {
-	account := viper.GetString("account")
-	key := viper.GetString("key")
+	account := viper.GetString("west_api.account")
+	key := viper.GetString("west_api.key")
 	/* MD5 Hash */
 	var hash_data string = account + key + "domainname"
 	sig := md5encode(hash_data)
@@ -92,10 +92,10 @@ func Check() string {
 
 func ReadConf() {
 	if ConfigFile != "" {
-		viper.SetConfigType("env")
+		viper.SetConfigType("toml")
 		viper.SetConfigFile(ConfigFile)
 	} else {
-		viper.SetConfigType("env")
+		viper.SetConfigType("toml")
 		viper.AddConfigPath("$HOME")
 		viper.SetConfigName(".env")
 	}
