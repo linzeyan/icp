@@ -2,8 +2,8 @@
 
 set -ex
 
-VERSION="$(git describe --tags --exact-match)"
-PACKAGE="icp"
+VERSION="$(git describe --tags)"
+PACKAGE=$(basename ${PWD})
 TARGET="bin"
 
 build() {
@@ -17,6 +17,12 @@ build() {
     # Windows
     GOOS=windows GOARCH=amd64
     go build -a -trimpath -o ${TARGET}/${PACKAGE}_${VERSION}_${GOOS}_${GOARCH} cmd/main.go
+}
+
+convert() {
+    mkdir upx
+    for i in $(ls ${TARGET}); do upx -9 -o upx/${i} ${TARGET}/${i}; done
+    rm -rf ${TARGET}
 }
 
 clean() {
