@@ -46,7 +46,8 @@ func requestURI() (uri string) {
 }
 
 func httpPOST() (content []byte, err error) {
-	var client = &http.Client{}
+	var tr = &http.Transport{DisableKeepAlives: true}
+	var client = &http.Client{Transport: tr}
 	uri := requestURI()
 	data := strings.NewReader(``)
 	req, err := http.NewRequest("POST", uri, data)
@@ -58,12 +59,16 @@ func httpPOST() (content []byte, err error) {
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
 	resp, err := client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
 	if err != nil {
 		fmt.Println("Response error.")
 		fmt.Println(err)
 		return nil, err
 	}
-	defer resp.Body.Close()
+
 	/* Convert GBK to UTF-8 */
 	reader := simplifiedchinese.GB18030.NewDecoder().Reader(resp.Body)
 	content, err = ioutil.ReadAll(reader)
