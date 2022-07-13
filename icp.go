@@ -50,7 +50,7 @@ func httpPOST() (content []byte, err error) {
 	var client = &http.Client{Transport: tr}
 	uri := requestURI()
 	data := strings.NewReader(``)
-	req, err := http.NewRequest("POST", uri, data)
+	req, err := http.NewRequest(http.MethodPost, uri, data)
 	if err != nil {
 		fmt.Println("Resquest error.")
 		fmt.Println(err)
